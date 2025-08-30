@@ -1,5 +1,5 @@
 // =============================================================================
-//  SERWER APLIKACJI VELORIE - WERSJA POPRAWIONA I ZABEZPIECZONA
+//  SERWER APLIKACJI VELORIE - WERSJA Z LOGOWANIEM LOKALNYM I DISCORD
 // =============================================================================
 
 require('dotenv').config();
@@ -9,22 +9,22 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const session = require('express-session');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
+// Usunięto: const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const DiscordStrategy = require('passport-discord').Strategy;
 const cors = require('cors');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
-const SQLiteStore = require('connect-sqlite3')(session); // <--- NOWY IMPORT
+const SQLiteStore = require('connect-sqlite3')(session);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- ZABEZPIECZENIE: Sprawdzenie kluczowych zmiennych środowiskowych ---
-const requiredEnv = ['JWT_SECRET', 'SESSION_SECRET', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET'];
+// --- ZABEZPIECZENIE: Sprawdzenie kluczowych zmiennych środowiskowych (bez Google) ---
+const requiredEnv = ['JWT_SECRET', 'SESSION_SECRET', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET'];
 for (const env of requiredEnv) {
     if (!process.env[env]) {
         console.error(`[BŁĄD KRYTYCZNY] Brakująca zmienna środowiskowa: ${env}. Serwer nie może zostać uruchomiony.`);
-        process.exit(1); // Zakończ proces, jeśli brakuje zmiennej
+        process.exit(1);
     }
 }
 
@@ -40,12 +40,11 @@ let db;
                 username TEXT UNIQUE,
                 email TEXT UNIQUE,
                 password_hash TEXT,
-                google_id TEXT UNIQUE,
+                google_id TEXT UNIQUE, -- Kolumna może zostać, nie przeszkadza
                 discord_id TEXT UNIQUE,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        // Tabela sesji zostanie stworzona automatycznie przez connect-sqlite3
         console.log('Tabela "users" jest gotowa.');
     } catch (error) {
         console.error('Błąd podczas inicjalizacji bazy danych:', error);
@@ -57,12 +56,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// --- POPRAWIONA KONFIGURACJA SESJI ---
 app.use(session({
-    store: new SQLiteStore({
-        db: 'database.db', // Nazwa pliku bazy danych
-        dir: '.' // Katalog, w którym znajduje się plik bazy danych
-    }),
+    store: new SQLiteStore({ db: 'database.db', dir: '.' }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
@@ -85,27 +80,9 @@ passport.deserializeUser(async (id, done) => {
     }
 });
 
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/api/auth/google/callback"
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        const email = profile.emails[0].value;
-        let user = await db.get('SELECT * FROM users WHERE google_id = ? OR email = ?', [profile.id, email]);
-        if (user) {
-            if (!user.google_id) {
-                await db.run('UPDATE users SET google_id = ? WHERE id = ?', [profile.id, user.id]);
-            }
-            return done(null, user);
-        }
-        const result = await db.run('INSERT INTO users (google_id, username, email) VALUES (?, ?, ?)', [profile.id, profile.displayName, email]);
-        return done(null, { id: result.lastID, username: profile.displayName, email });
-    } catch (err) {
-        return done(err, null);
-    }
-}));
+// ### USUNIĘTO CAŁĄ STRATEGIĘ GOOGLE ###
 
+// -- Strategia Discord --
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
@@ -127,7 +104,8 @@ passport.use(new DiscordStrategy({
     }
 }));
 
-// Endpointy API (bez zmian)
+
+// Endpointy API
 app.post('/api/register', async (req, res) => {
     const { username, email, password } = req.body;
     if (!username || !email || !password) return res.status(400).json({ message: 'Wszystkie pola są wymagane.' });
@@ -163,8 +141,7 @@ const generateTokenAndRedirect = (req, res) => {
     res.send(`<script>localStorage.setItem('authToken', '${token}'); window.location.href = '/';</script>`);
 };
 
-app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-app.get('/api/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), generateTokenAndRedirect);
+// ### USUNIĘTO ENDPOINTY GOOGLE ###
 app.get('/api/auth/discord', passport.authenticate('discord'));
 app.get('/api/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), generateTokenAndRedirect);
 
