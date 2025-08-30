@@ -1,169 +1,198 @@
-require('dotenv').config();
 const express = require('express');
-const path = require('path');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const passport = require('passport');
+const mongoose = require('mongoose');
 const session = require('express-session');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 const DiscordStrategy = require('passport-discord').Strategy;
+const bcrypt = require('bcryptjs');
+const path = require('path');
+const crypto = require('crypto');
 const cors = require('cors');
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
-const SQLiteStore = require('connect-sqlite3')(session);
 
+// --- 1. SCHEMATY I MODELE BAZY DANYCH (MONGOOSE) ---
+const UserSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String },
+    discordId: { type: String },
+    googleId: { type: String },
+    avatar: { type: String }
+});
+const User = mongoose.model('User', UserSchema);
+
+const ServerSchema = new mongoose.Schema({
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    uniqueId: { type: String, required: true, unique: true },
+    ipAddress: { type: String, required: true },
+    version: { type: String, required: true },
+    gameMode: { type: String, required: true },
+    onlinePlayers: { type: Number, default: 0 },
+    maxPlayers: { type: Number, default: 0 },
+    motd: { type: String, default: 'Serwer oczekuje na weryfikację...' },
+    logo: { type: String },
+    isVerified: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+});
+const Server = mongoose.model('Server', ServerSchema);
+
+// --- 2. KONFIGURACJA APLIKACJI EXPRESS ---
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// --- ZABEZPIECZENIE: Sprawdzenie kluczowych zmiennych środowiskowych ---
-const requiredEnv = ['JWT_SECRET', 'SESSION_SECRET', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET'];
-for (const env of requiredEnv) {
-    if (!process.env[env]) {
-        console.error(`[BŁĄD KRYTYCZNY] Brakująca zmienna środowiskowa: ${env}. Serwer nie może zostać uruchomiony.`);
-        process.exit(1);
-    }
-}
-
-let db;
-(async () => {
-    try {
-        db = await open({ filename: './database.db', driver: sqlite3.Database });
-        console.log('Połączono z bazą danych SQLite.');
-
-        await db.exec(`
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE,
-                email TEXT UNIQUE,
-                password_hash TEXT,
-                google_id TEXT UNIQUE,
-                discord_id TEXT UNIQUE,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        console.log('Tabela "users" jest gotowa.');
-    } catch (error) {
-        console.error('Błąd podczas inicjalizacji bazy danych:', error);
-    }
-})();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
+app.use(express.static('public')); // Dla favicon.png
 
 app.use(session({
-    store: new SQLiteStore({ db: 'database.db', dir: '.' }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { 
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 * 7 // Sesja ważna 7 dni
-    }
+    cookie: { secure: 'auto' }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser(async (id, done) => {
+// --- 3. KONFIGURACJA PASSPORT.JS (STRATEGIE LOGOWANIA) ---
+passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
     try {
-        const user = await db.get('SELECT id, username, email FROM users WHERE id = ?', [id]);
-        done(null, user);
-    } catch (err) {
-        done(err, null);
-    }
-});
+        const user = await User.findOne({ email: email });
+        if (!user) { return done(null, false, { message: 'Nie znaleziono użytkownika.' }); }
+        if (!user.password) { return done(null, false, { message: 'To konto loguje się przez Discord/Google.' }); }
 
-// -- Strategia Discord (UPROSZCZONA ŚCIEŻKA) --
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (isMatch) { return done(null, user); }
+        else { return done(null, false, { message: 'Nieprawidłowe hasło.' }); }
+    } catch (err) { return done(err); }
+}));
+
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: "/auth/discord/callback", // <-- ZMIANA: Usunięto /api
+    callbackURL: "/auth/discord/callback",
     scope: ['identify', 'email']
 }, async (accessToken, refreshToken, profile, done) => {
     try {
-        let user = await db.get('SELECT * FROM users WHERE discord_id = ? OR email = ?', [profile.id, profile.email]);
+        let user = await User.findOne({ discordId: profile.id });
+        if (user) { return done(null, user); }
+
+        user = await User.findOne({ email: profile.email });
         if (user) {
-            if (!user.discord_id) {
-                await db.run('UPDATE users SET discord_id = ? WHERE id = ?', [profile.id, user.id]);
-            }
+            user.discordId = profile.id;
+            user.avatar = user.avatar || `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`;
+            await user.save();
             return done(null, user);
         }
-        const result = await db.run('INSERT INTO users (discord_id, username, email) VALUES (?, ?, ?)', [profile.id, profile.username, profile.email]);
-        const newUser = { id: result.lastID, username: profile.username, email: profile.email, discord_id: profile.id };
-        return done(null, newUser);
-    } catch (err) {
-        return done(err, null);
-    }
+
+        const newUser = new User({
+            discordId: profile.id,
+            username: profile.username,
+            email: profile.email,
+            avatar: `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
+        });
+        await newUser.save();
+        done(null, newUser);
+    } catch (err) { return done(err, null); }
 }));
 
-// Endpointy API
-app.post('/api/register', async (req, res) => {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) return res.status(400).json({ message: 'Wszystkie pola są wymagane.' });
+passport.serializeUser((user, done) => { done(null, user.id); });
+passport.deserializeUser(async (id, done) => {
     try {
-        const existingUser = await db.get('SELECT * FROM users WHERE email = ? OR username = ?', [email, username]);
-        if (existingUser) return res.status(409).json({ message: 'Użytkownik z tym adresem e-mail lub nazwą już istnieje.' });
-
-        const password_hash = await bcrypt.hash(password, 10);
-        await db.run('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)', [username, email, password_hash]);
-        res.status(201).json({ message: 'Rejestracja zakończona sukcesem! Możesz się teraz zalogować.' });
-    } catch (error) {
-        res.status(500).json({ message: 'Wystąpił błąd serwera.' });
-    }
+        const user = await User.findById(id);
+        done(null, user);
+    } catch (err) { done(err); }
 });
 
-app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: 'Proszę podać login i hasło.' });
-    try {
-        const user = await db.get('SELECT * FROM users WHERE email = ? OR username = ?', [email, email]);
-        if (!user || !user.password_hash || !await bcrypt.compare(password, user.password_hash)) {
-            return res.status(401).json({ message: 'Nieprawidłowy login lub hasło.' });
-        }
-        const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1d' });
-        res.json({ message: 'Zalogowano pomyślnie!', token });
-    } catch (error) {
-        res.status(500).json({ message: 'Wystąpił błąd serwera.' });
-    }
-});
-
-const generateTokenAndRedirect = (req, res) => {
-    const token = jwt.sign({ id: req.user.id, username: req.user.username }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.send(`<script>localStorage.setItem('authToken', '${token}'); window.location.href = '/';</script>`);
+const isAuthenticated = (req, res, next) => {
+    if (req.isAuthenticated()) { return next(); }
+    // Zamiast przekierowania, wysyłamy błąd, który obsłuży frontend
+    res.status(401).json({ message: 'Brak autoryzacji.' });
 };
 
-// Trasy logowania przez Discord (UPROSZCZONA ŚCIEŻKA)
-app.get('/auth/discord', passport.authenticate('discord')); // <-- ZMIANA: Usunięto /api
-app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), generateTokenAndRedirect); // <-- ZMIANA: Usunięto /api
+// --- 4. TRASY (ROUTES) - PUBLICZNE I API ---
 
-app.get('/api/user', (req, res) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.sendStatus(401);
+// Serwowanie plików HTML
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
+app.get('/favicon.ico', (req, res) => res.sendFile(path.join(__dirname, 'public', 'favicon.png')));
 
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-        if (err) return res.sendStatus(403);
-        try {
-            const user = await db.get('SELECT id, username, email FROM users WHERE id = ?', [decoded.id]);
-            if (!user) return res.sendStatus(404);
-            res.json({
-                id: user.id,
-                username: user.username,
-                vpln: 123.45,
-                vc: 500
-            });
-        } catch (dbError) {
-            res.status(500).json({ message: 'Błąd bazy danych' });
-        }
+
+// API do autentykacji
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+        let user = await User.findOne({ $or: [{email: email}, {username: username}] });
+        if (user) { return res.status(400).json({ message: 'Użytkownik o tym emailu lub nazwie już istnieje.' }); }
+        
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, email, password: hashedPassword });
+        await newUser.save();
+        res.status(201).json({ message: 'Rejestracja pomyślna! Możesz się teraz zalogować.' });
+    } catch (err) { res.status(500).json({ message: 'Błąd serwera podczas rejestracji.' }); }
+});
+
+app.post('/api/login', passport.authenticate('local'), (req, res) => {
+    res.status(200).json({ message: 'Zalogowano pomyślnie!' });
+});
+
+app.get('/logout', (req, res, next) => {
+    req.logout(err => {
+        if (err) { return next(err); }
+        res.redirect('/');
     });
 });
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+// Trasy OAuth
+app.get('/auth/discord', passport.authenticate('discord'));
+app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/panel'));
+
+// API do pobierania danych o zalogowanym użytkowniku
+app.get('/api/me', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json({
+            id: req.user._id,
+            username: req.user.username,
+            avatar: req.user.avatar || null
+        });
+    } else {
+        res.status(401).json({ message: 'Brak autoryzacji.' });
+    }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Serwer uruchomiony na porcie ${PORT}. Dostępny pod adresem: http://localhost:${PORT}`);
+// API do serwerów
+app.get('/api/servers', async (req, res) => {
+    try {
+        const servers = await Server.find().populate('owner', 'username').sort({ createdAt: -1 });
+        res.json(servers);
+    } catch (err) { res.status(500).json({ message: 'Błąd pobierania serwerów.' }); }
 });
+
+app.post('/api/servers', isAuthenticated, async (req, res) => {
+    try {
+        const { ipAddress, version, gameMode } = req.body;
+        const uniqueId = crypto.randomBytes(16).toString('hex');
+        
+        const newServer = new Server({
+            owner: req.user.id,
+            uniqueId,
+            ipAddress,
+            version,
+            gameMode
+        });
+        
+        await newServer.save();
+        res.status(201).json({ message: `Serwer dodany pomyślnie! Twoje unikalne ID dla pluginu to: ${uniqueId}`, server: newServer });
+    } catch (err) { 
+        console.error("Błąd dodawania serwera:", err);
+        res.status(500).json({ message: 'Błąd dodawania serwera.' }); 
+    }
+});
+
+// --- 5. POŁĄCZENIE Z BAZĄ I URUCHOMIENIE SERWERA ---
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => {
+        console.log('Połączono z bazą danych MongoDB.');
+        app.listen(PORT, () => console.log(`Serwer McList nasłuchuje na porcie ${PORT}`));
+    })
+    .catch(err => console.error('Błąd połączenia z MongoDB:', err));
