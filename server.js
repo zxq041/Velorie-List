@@ -1,7 +1,3 @@
-// =============================================================================
-//  SERWER APLIKACJI VELORIE - WERSJA Z LOGOWANIEM LOKALNYM I DISCORD
-// =============================================================================
-
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -9,7 +5,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const session = require('express-session');
-// Usunięto: const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const DiscordStrategy = require('passport-discord').Strategy;
 const cors = require('cors');
 const sqlite3 = require('sqlite3');
@@ -19,7 +14,7 @@ const SQLiteStore = require('connect-sqlite3')(session);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- ZABEZPIECZENIE: Sprawdzenie kluczowych zmiennych środowiskowych (bez Google) ---
+// --- ZABEZPIECZENIE: Sprawdzenie kluczowych zmiennych środowiskowych ---
 const requiredEnv = ['JWT_SECRET', 'SESSION_SECRET', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET'];
 for (const env of requiredEnv) {
     if (!process.env[env]) {
@@ -40,7 +35,7 @@ let db;
                 username TEXT UNIQUE,
                 email TEXT UNIQUE,
                 password_hash TEXT,
-                google_id TEXT UNIQUE, -- Kolumna może zostać, nie przeszkadza
+                google_id TEXT UNIQUE,
                 discord_id TEXT UNIQUE,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -80,13 +75,11 @@ passport.deserializeUser(async (id, done) => {
     }
 });
 
-// ### USUNIĘTO CAŁĄ STRATEGIĘ GOOGLE ###
-
-// -- Strategia Discord --
+// -- Strategia Discord (UPROSZCZONA ŚCIEŻKA) --
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: "/api/auth/discord/callback",
+    callbackURL: "/auth/discord/callback", // <-- ZMIANA: Usunięto /api
     scope: ['identify', 'email']
 }, async (accessToken, refreshToken, profile, done) => {
     try {
@@ -98,12 +91,12 @@ passport.use(new DiscordStrategy({
             return done(null, user);
         }
         const result = await db.run('INSERT INTO users (discord_id, username, email) VALUES (?, ?, ?)', [profile.id, profile.username, profile.email]);
-        return done(null, { id: result.lastID, username: profile.username, email: profile.email });
+        const newUser = { id: result.lastID, username: profile.username, email: profile.email, discord_id: profile.id };
+        return done(null, newUser);
     } catch (err) {
         return done(err, null);
     }
 }));
-
 
 // Endpointy API
 app.post('/api/register', async (req, res) => {
@@ -141,9 +134,9 @@ const generateTokenAndRedirect = (req, res) => {
     res.send(`<script>localStorage.setItem('authToken', '${token}'); window.location.href = '/';</script>`);
 };
 
-// ### USUNIĘTO ENDPOINTY GOOGLE ###
-app.get('/api/auth/discord', passport.authenticate('discord'));
-app.get('/api/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), generateTokenAndRedirect);
+// Trasy logowania przez Discord (UPROSZCZONA ŚCIEŻKA)
+app.get('/auth/discord', passport.authenticate('discord')); // <-- ZMIANA: Usunięto /api
+app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), generateTokenAndRedirect); // <-- ZMIANA: Usunięto /api
 
 app.get('/api/user', (req, res) => {
     const authHeader = req.headers['authorization'];
