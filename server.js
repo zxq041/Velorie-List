@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const crypto = require('crypto');
 const cors = require('cors');
+const MongoStore = require('connect-mongo');
 
 // --- 1. SCHEMATY I MODELE BAZY DANYCH (MONGOOSE) ---
 const UserSchema = new mongoose.Schema({
@@ -39,30 +40,47 @@ const Server = mongoose.model('Server', ServerSchema);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Sprawdzenie kluczowych zmiennych środowiskowych
+const requiredEnv = ['MONGO_URI', 'SESSION_SECRET', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET'];
+for (const env of requiredEnv) {
+    if (!process.env[env]) {
+        console.error(`[BŁĄD KRYTYCZNY] Brakująca zmienna środowiskowa: ${env}.`);
+        process.exit(1);
+    }
+}
+
+// Konfiguracja middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public')); // Dla favicon.png
+app.use(express.static('public'));
 
+// Konfiguracja sesji z zapisem w MongoDB
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: 'auto' }
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+    cookie: {
+        secure: 'auto',
+        maxAge: 1000 * 60 * 60 * 24 * 7 // Sesja ważna 7 dni
+    }
 }));
 
+// Inicjalizacja Passport.js
 app.use(passport.initialize());
 app.use(passport.session());
 
 // --- 3. KONFIGURACJA PASSPORT.JS (STRATEGIE LOGOWANIA) ---
 passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
     try {
-        const user = await User.findOne({ email: email });
+        // Logika pozwala na logowanie przez email lub nazwę użytkownika
+        const user = await User.findOne({ $or: [{ email: email }, { username: email }] });
         if (!user) { return done(null, false, { message: 'Nie znaleziono użytkownika.' }); }
         if (!user.password) { return done(null, false, { message: 'To konto loguje się przez Discord/Google.' }); }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (isMatch) { return done(null, user); }
+        if (isMatch) { return done(null, user); } 
         else { return done(null, false, { message: 'Nieprawidłowe hasło.' }); }
     } catch (err) { return done(err); }
 }));
@@ -106,7 +124,6 @@ passport.deserializeUser(async (id, done) => {
 
 const isAuthenticated = (req, res, next) => {
     if (req.isAuthenticated()) { return next(); }
-    // Zamiast przekierowania, wysyłamy błąd, który obsłuży frontend
     res.status(401).json({ message: 'Brak autoryzacji.' });
 };
 
@@ -115,14 +132,12 @@ const isAuthenticated = (req, res, next) => {
 // Serwowanie plików HTML
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
-app.get('/favicon.ico', (req, res) => res.sendFile(path.join(__dirname, 'public', 'favicon.png')));
-
 
 // API do autentykacji
 app.post('/api/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
-        let user = await User.findOne({ $or: [{email: email}, {username: username}] });
+        let user = await User.findOne({ $or: [{ email: email }, { username: username }] });
         if (user) { return res.status(400).json({ message: 'Użytkownik o tym emailu lub nazwie już istnieje.' }); }
         
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -195,4 +210,7 @@ mongoose.connect(process.env.MONGO_URI)
         console.log('Połączono z bazą danych MongoDB.');
         app.listen(PORT, () => console.log(`Serwer McList nasłuchuje na porcie ${PORT}`));
     })
-    .catch(err => console.error('Błąd połączenia z MongoDB:', err));
+    .catch(err => {
+        console.error('Błąd połączenia z MongoDB:', err);
+        process.exit(1);
+    });
