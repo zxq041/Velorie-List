@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logowanie – Mclist-Velorie.pl</title>
+    <meta name="description" content="Zaloguj się, zarejestruj lub zarządzaj swoim serwerem Minecraft w panelu klienta Velorie.pl.">
+    <meta name="theme-color" content="#0a1030">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --accent: #ff0354; }
+        body { background-color: #00010f; background-image: radial-gradient(1200px 600px at 80% -10%, #0a1030 0%, #050919 35%, #00010f 65%, #000000 100%); }
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 999px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.08); }
+        @keyframes particle-animation { 0%, 100% { transform: translateY(0%) translateX(0%) rotate(0deg); } 50% { transform: translateY(-10%) translateX(5%) rotate(20deg); } }
+        .particle { animation-name: particle-animation; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+        .nav-link.active { background-color: rgba(255, 255, 255, 0.1); color: #ffffff; font-weight: 600; }
+        .nav-link.active i { color: var(--accent); }
+        .code-comment { color: #8a93a5; }
+    </style>
+</head>
+<body class="min-h-screen text-white selection:bg-[#ff0354]/40 selection:text-white">
+
+    <div id="particles-container" aria-hidden="true" class="pointer-events-none fixed inset-0 overflow-hidden z-0"></div>
+
+    <div id="auth-container" class="hidden">
+        <header class="sticky top-0 z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
+            <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+                <a href="/" class="flex items-center gap-3" aria-label="Strona główna">
+                    <img src="https://i.imgur.com/ikYb7tH.png" alt="logo" class="h-10 w-10 rounded-xl ring-1 ring-white/10">
+                    <div class="leading-tight">
+                        <div class="text-lg font-semibold tracking-tight">Mclist-Velorie.pl</div>
+                        <div class="text-xs text-white/60">Lista serwerów Minecraft</div>
+                    </div>
+                </a>
+            </div>
+        </header>
+        <main class="relative z-10 flex items-center justify-center py-12 px-4" style="min-height: calc(100vh - 73px);">
+            <div class="w-full max-w-md">
+                <div class="relative rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_10px_50px_rgba(0,0,0,0.4)] p-8">
+                    <div id="login-form-container">
+                        <h2 class="text-2xl font-bold text-center mb-1">Witaj ponownie!</h2>
+                        <p class="text-white/60 text-sm text-center mb-6">Zaloguj się, aby kontynuować.</p>
+                        <form id="login-form-element" class="space-y-4">
+                            <div>
+                                <label for="login-email" class="block text-sm font-medium text-white/80 mb-1">E-mail lub nazwa użytkownika</label>
+                                <input type="text" id="login-email" required placeholder="twoj@email.com" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition">
+                            </div>
+                            <div>
+                                <label for="login-password" class="block text-sm font-medium text-white/80 mb-1">Hasło</label>
+                                <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition">
+                            </div>
+                            <button type="submit" class="w-full bg-[var(--accent)] text-white font-semibold py-3 rounded-lg hover:brightness-110 transition shadow-[0_8px_30px_rgba(255,3,84,0.35)]">Zaloguj się</button>
+                        </form>
+                        <div class="flex items-center gap-4 my-6"><hr class="w-full border-white/10"><span class="text-xs text-white/50">LUB</span><hr class="w-full border-white/10"></div>
+                        <div class="space-y-3">
+                            <a href="/api/auth/google" class="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg py-3 hover:bg-white/10 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C42.022,35.37,44,30.038,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path></svg>
+                                <span>Kontynuuj z Google</span>
+                            </a>
+                            <a href="/api/auth/discord" class="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg py-3 hover:bg-white/10 transition">
+                                <img src="https://i.imgur.com/M88jgrc.png" alt="Discord logo" class="h-5 w-5">
+                                <span>Kontynuuj z Discord</span>
+                            </a>
+                        </div>
+                        <p class="text-center text-sm text-white/60 mt-6">
+                            Nie masz konta? <button id="show-register-btn" class="font-semibold text-[var(--accent)] hover:underline">Zarejestruj się</button>
+                        </p>
+                    </div>
+                    <div id="register-form-container" class="hidden">
+                        <h2 class="text-2xl font-bold text-center mb-1">Stwórz konto</h2>
+                        <p class="text-white/60 text-sm text-center mb-6">Dołącz do nas już dziś!</p>
+                        <form id="register-form-element" class="space-y-4">
+                            <div><label for="reg-username" class="block text-sm font-medium text-white/80 mb-1">Nazwa użytkownika</label><input type="text" id="reg-username" required placeholder="Twoja nazwa" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"></div>
+                            <div><label for="reg-email" class="block text-sm font-medium text-white/80 mb-1">Adres e-mail</label><input type="email" id="reg-email" required placeholder="twoj@email.com" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"></div>
+                            <div><label for="reg-password" class="block text-sm font-medium text-white/80 mb-1">Hasło</label><input type="password" id="reg-password" required placeholder="••••••••" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"></div>
+                            <div><label for="reg-password-repeat" class="block text-sm font-medium text-white/80 mb-1">Powtórz hasło</label><input type="password" id="reg-password-repeat" required placeholder="••••••••" class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"></div>
+                            <button type="submit" class="w-full bg-[var(--accent)] text-white font-semibold py-3 rounded-lg hover:brightness-110 transition shadow-[0_8px_30px_rgba(255,3,84,0.35)]">Załóż konto</button>
+                        </form>
+                        <p class="text-center text-sm text-white/60 mt-6">
+                            Masz już konto? <button id="show-login-btn" class="font-semibold text-[var(--accent)] hover:underline">Zaloguj się</button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="panel-container" class="hidden">
+        <header class="sticky top-0 z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
+            <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4">
+                <a href="/" class="flex items-center gap-3 flex-shrink-0">
+                    <img src="https://i.imgur.com/ikYb7tH.png" alt="logo" class="h-10 w-10 rounded-xl ring-1 ring-white/10">
+                    <div class="leading-tight hidden sm:block">
+                        <div class="text-lg font-semibold tracking-tight">Mclist-Velorie.pl</div>
+                        <div class="text-xs text-white/60">Lista serwerów Minecraft</div>
+                    </div>
+                </a>
+                <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
+                    <div class="hidden sm:flex items-center gap-3 text-right">
+                        <div>
+                            <div id="header-username" class="font-semibold text-sm">...</div>
+                            <div id="header-user-id" class="text-xs text-white/50 font-mono">ID: ...</div>
+                        </div>
+                        <i data-lucide="user-circle" class="h-9 w-9 text-white/70"></i>
+                    </div>
+                    <div class="w-px h-8 bg-white/10 hidden sm:block"></div>
+                    <div class="hidden sm:flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm font-medium">
+                        <i data-lucide="wallet" class="h-4 w-4 text-[var(--accent)]"></i>
+                        <span id="header-vpln-balance">0.00 VPLN</span>
+                    </div>
+                    <div class="hidden sm:flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm font-medium">
+                        <i data-lucide="circle-dollar-sign" class="h-4 w-4 text-yellow-400"></i>
+                        <span id="header-coin-balance">0 VC</span>
+                    </div>
+                    <a href="#" id="logout-btn" class="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)]/80 text-white px-4 py-2 text-sm font-medium hover:bg-[var(--accent)] transition">
+                        <i data-lucide="log-out" class="h-4 w-4"></i>
+                        <span class="hidden sm:inline">Wyloguj</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="relative z-10 mx-auto max-w-7xl p-4 md:p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <aside class="lg:col-span-1">
+                    <div class="p-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl sticky top-24">
+                        <nav id="main-nav" class="flex flex-col gap-2">
+                             <a href="#" data-view="panel" class="nav-link active flex items-center gap-4 px-5 py-4 rounded-lg text-base">
+                                 <i data-lucide="layout-dashboard" class="h-6 w-6"></i>
+                                 <span>Panel Klienta</span>
+                             </a>
+                             <a href="#" data-view="add-server" class="nav-link flex items-center gap-4 px-5 py-4 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition text-base">
+                                 <i data-lucide="plus-circle" class="h-6 w-6"></i>
+                                 <span>Dodaj Serwer</span>
+                             </a>
+                             <a href="#" data-view="wallet" class="nav-link flex items-center gap-4 px-5 py-4 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition text-base">
+                                 <i data-lucide="wallet" class="h-6 w-6"></i>
+                                 <span>Portfel</span>
+                             </a>
+                             <a href="#" data-view="store" class="nav-link flex items-center gap-4 px-5 py-4 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition text-base">
+                                 <i data-lucide="shopping-cart" class="h-6 w-6"></i>
+                                 <span>Sklep</span>
+                             </a>
+                             <a href="#" data-view="plugin" class="nav-link flex items-center gap-4 px-5 py-4 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition text-base">
+                                 <i data-lucide="puzzle" class="h-6 w-6"></i>
+                                 <span>Plugin</span>
+                             </a>
+                        </nav>
+                    </div>
+                </aside>
+                
+                <div class="lg:col-span-4">
+                    <section id="view-panel" class="view-content space-y-8">
+                         <div>
+                             <h1 class="text-4xl font-bold">Witaj w Panelu Klienta!</h1>
+                             <p class="text-lg text-white/60 mt-2">Zarządzaj swoimi serwerami, przeglądaj sklep i pobierz nasz plugin.</p>
+                         </div>
+                         <div class="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+                             <div class="flex items-center justify-between">
+                                 <h2 class="text-xl font-semibold">Twoje Serwery</h2>
+                                 <span class="text-sm font-medium text-white/50 bg-white/5 px-3 py-1 rounded-full">0 / 1</span>
+                             </div>
+                             <div class="text-center py-12 mt-4 border-2 border-dashed border-white/10 rounded-lg">
+                                 <i data-lucide="server-off" class="h-12 w-12 mx-auto text-white/30"></i>
+                                 <p class="mt-4 text-white/60">Nie posiadasz jeszcze żadnego serwera.</p>
+                                 <button id="add-first-server-btn" class="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-3 font-semibold hover:brightness-110 transition shadow-[0_8px_30px_rgba(255,3,84,0.35)]">
+                                     <i data-lucide="plus" class="h-5 w-5"></i>
+                                     <span>Dodaj swój pierwszy serwer</span>
+                                 </button>
+                             </div>
+                         </div>
+                    </section>
+                    </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const authContainer = document.getElementById('auth-container');
+        const panelContainer = document.getElementById('panel-container');
+        const authToken = localStorage.getItem('authToken');
+
+        // --- GŁÓWNA LOGIKA WYŚWIETLANIA ---
+        if (authToken) {
+            authContainer.classList.add('hidden');
+            panelContainer.classList.remove('hidden');
+            initializePanel();
+        } else {
+            authContainer.classList.remove('hidden');
+            panelContainer.classList.add('hidden');
+            initializeAuthForms();
+        }
+
+        // --- Inicjalizacja formularzy logowania/rejestracji ---
+        function initializeAuthForms() {
+            const loginFormContainer = document.getElementById('login-form-container');
+            const registerFormContainer = document.getElementById('register-form-container');
+            const showRegisterBtn = document.getElementById('show-register-btn');
+            const showLoginBtn = document.getElementById('show-login-btn');
+            
+            showRegisterBtn.addEventListener('click', () => {
+                loginFormContainer.classList.add('hidden');
+                registerFormContainer.classList.remove('hidden');
+            });
+            showLoginBtn.addEventListener('click', () => {
+                registerFormContainer.classList.add('hidden');
+                loginFormContainer.classList.remove('hidden');
+            });
+
+            // Logika formularza rejestracji
+            const registerForm = document.getElementById('register-form-element');
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('reg-username').value;
+                const email = document.getElementById('reg-email').value;
+                const password = document.getElementById('reg-password').value;
+                const passwordRepeat = document.getElementById('reg-password-repeat').value;
+                if (password !== passwordRepeat) {
+                    alert('Hasła nie są takie same!');
+                    return;
+                }
+                try {
+                    const response = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, password })
+                    });
+                    const result = await response.json();
+                    alert(result.message);
+                    if (response.ok) { window.location.reload(); }
+                } catch (error) {
+                    alert("Wystąpił błąd sieci. Upewnij się, że serwer jest uruchomiony.");
+                }
+            });
+
+            // Logika formularza logowania
+            const loginForm = document.getElementById('login-form-element');
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        localStorage.setItem('authToken', result.token);
+                        window.location.reload();
+                    } else {
+                        alert(result.message);
+                    }
+                } catch(error) {
+                    alert("Wystąpił błąd sieci. Upewnij się, że serwer jest uruchomiony.");
+                }
+            });
+        }
+        
+        // --- Inicjalizacja Panelu Klienta ---
+        function initializePanel() {
+            // Pobierz dane użytkownika i zaktualizuj UI
+            async function fetchUserData() {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+
+                try {
+                    const response = await fetch('/api/user', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (!response.ok) {
+                        // Jeśli token jest nieważny, wyloguj
+                        localStorage.removeItem('authToken');
+                        window.location.reload();
+                        return;
+                    }
+                    const userData = await response.json();
+                    updateHeaderUI(userData);
+                } catch (error) {
+                    console.error('Błąd pobierania danych użytkownika:', error);
+                }
+            }
+
+            function updateHeaderUI(userData) {
+                document.getElementById('header-username').textContent = userData.username;
+                document.getElementById('header-user-id').textContent = `ID: ${userData.id}`;
+                document.getElementById('header-vpln-balance').textContent = `${userData.vpln.toFixed(2)} VPLN`;
+                document.getElementById('header-coin-balance').textContent = `${userData.vc} VC`;
+            }
+
+            // Wylogowywanie
+            document.getElementById('logout-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem('authToken');
+                window.location.reload();
+            });
+
+            // Logika przełączania widoków w panelu
+            const navLinks = document.querySelectorAll('#main-nav .nav-link');
+            const contentSections = document.querySelectorAll('.view-content');
+            function switchView(targetView) {
+                contentSections.forEach(section => section.classList.add('hidden'));
+                const activeSection = document.getElementById(`view-${targetView}`);
+                if (activeSection) activeSection.classList.remove('hidden');
+
+                navLinks.forEach(navLink => {
+                    navLink.classList.remove('active');
+                    if (navLink.dataset.view === targetView) {
+                        navLink.classList.add('active');
+                        document.title = `${navLink.querySelector('span').textContent} – Mclist-Velorie.pl`;
+                    }
+                });
+            }
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchView(link.dataset.view);
+                });
+            });
+            document.getElementById('add-first-server-btn')?.addEventListener('click', () => switchView('add-server'));
+            
+            fetchUserData();
+        }
+
+        // --- Wspólne funkcje ---
+        const createParticles = () => {
+            const container = document.getElementById('particles-container');
+            if (!container || container.childElementCount > 0) return;
+            const particleCount = 28;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('span');
+                const size = 24 + (i % 5) * 12;
+                particle.className = 'absolute rounded-full opacity-20 blur-2xl particle';
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.background = i % 3 ? 'var(--accent)' : "#4f46e5";
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.animationDuration = `${10 + (i % 5)}s`;
+                particle.style.animationDelay = `${i * 0.2}s`;
+                container.appendChild(particle);
+            }
+        };
+
+        createParticles();
+        lucide.createIcons();
+    });
+    </script>
+</body>
+</html>
