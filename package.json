@@ -1,19 +1,11 @@
-{
-  "name": "velorie-mclist",
-  "version": "1.0.0",
-  "description": "Minecraft server list",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "express-session": "^1.18.0",
-    "mongoose": "^8.4.1",
-    "passport": "^0.7.0",
-    "passport-discord": "^0.1.4",
-    "passport-local": "^1.0.0"
-  }
+"dependencies": {
+  "bcryptjs": "^2.4.3",
+  "connect-mongo": "^5.1.0",
+  "cors": "^2.8.5",
+  "express": "^4.19.2",
+  "express-session": "^1.18.0",
+  "mongoose": "^8.4.1",
+  "passport": "^0.7.0",
+  "passport-discord": "^0.1.4",
+  "passport-local": "^1.0.0"
 }
