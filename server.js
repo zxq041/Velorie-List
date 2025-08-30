@@ -1,10 +1,7 @@
 // =============================================================================
-//  SERWER APLIKACJI VELORIE - WERSJA ZJEDNOCZONA
+//  SERWER APLIKACJI VELORIE - WERSJA POPRAWIONA I ZABEZPIECZONA
 // =============================================================================
 
-// -----------------------------------------------------------------------------
-//  1. Importowanie modułów i konfiguracja wstępna
-// -----------------------------------------------------------------------------
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -17,13 +14,20 @@ const DiscordStrategy = require('passport-discord').Strategy;
 const cors = require('cors');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
+const SQLiteStore = require('connect-sqlite3')(session); // <--- NOWY IMPORT
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// -----------------------------------------------------------------------------
-//  2. Konfiguracja bazy danych SQLite
-// -----------------------------------------------------------------------------
+// --- ZABEZPIECZENIE: Sprawdzenie kluczowych zmiennych środowiskowych ---
+const requiredEnv = ['JWT_SECRET', 'SESSION_SECRET', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET'];
+for (const env of requiredEnv) {
+    if (!process.env[env]) {
+        console.error(`[BŁĄD KRYTYCZNY] Brakująca zmienna środowiskowa: ${env}. Serwer nie może zostać uruchomiony.`);
+        process.exit(1); // Zakończ proces, jeśli brakuje zmiennej
+    }
+}
+
 let db;
 (async () => {
     try {
@@ -41,35 +45,36 @@ let db;
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
+        // Tabela sesji zostanie stworzona automatycznie przez connect-sqlite3
         console.log('Tabela "users" jest gotowa.');
     } catch (error) {
         console.error('Błąd podczas inicjalizacji bazy danych:', error);
     }
 })();
 
-// -----------------------------------------------------------------------------
-//  3. Konfiguracja middleware
-// -----------------------------------------------------------------------------
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serwujemy tylko jeden główny plik HTML z roota
 app.use(express.static(__dirname));
 
+// --- POPRAWIONA KONFIGURACJA SESJI ---
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'domyslny_sekret_sesji_zmien_go',
+    store: new SQLiteStore({
+        db: 'database.db', // Nazwa pliku bazy danych
+        dir: '.' // Katalog, w którym znajduje się plik bazy danych
+    }),
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production' }
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60 * 24 * 7 // Sesja ważna 7 dni
+    }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// -----------------------------------------------------------------------------
-//  4. Konfiguracja Passport.js (Strategie logowania)
-// -----------------------------------------------------------------------------
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {
     try {
@@ -80,7 +85,6 @@ passport.deserializeUser(async (id, done) => {
     }
 });
 
-// -- Strategia Google --
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -102,7 +106,6 @@ passport.use(new GoogleStrategy({
     }
 }));
 
-// -- Strategia Discord --
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
@@ -124,10 +127,7 @@ passport.use(new DiscordStrategy({
     }
 }));
 
-
-// -----------------------------------------------------------------------------
-//  5. Definicja endpointów API
-// -----------------------------------------------------------------------------
+// Endpointy API (bez zmian)
 app.post('/api/register', async (req, res) => {
     const { username, email, password } = req.body;
     if (!username || !email || !password) return res.status(400).json({ message: 'Wszystkie pola są wymagane.' });
@@ -168,7 +168,6 @@ app.get('/api/auth/google/callback', passport.authenticate('google', { failureRe
 app.get('/api/auth/discord', passport.authenticate('discord'));
 app.get('/api/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), generateTokenAndRedirect);
 
-// Endpoint do pobierania danych użytkownika na podstawie tokenu
 app.get('/api/user', (req, res) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -179,12 +178,11 @@ app.get('/api/user', (req, res) => {
         try {
             const user = await db.get('SELECT id, username, email FROM users WHERE id = ?', [decoded.id]);
             if (!user) return res.sendStatus(404);
-            // Tutaj możesz dodać pobieranie salda portfela itp.
             res.json({
                 id: user.id,
                 username: user.username,
-                vpln: 123.45, // Przykładowe dane
-                vc: 500 // Przykładowe dane
+                vpln: 123.45,
+                vc: 500
             });
         } catch (dbError) {
             res.status(500).json({ message: 'Błąd bazy danych' });
@@ -192,10 +190,6 @@ app.get('/api/user', (req, res) => {
     });
 });
 
-
-// -----------------------------------------------------------------------------
-//  6. Serwowanie pliku frontendu i start serwera
-// -----------------------------------------------------------------------------
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
