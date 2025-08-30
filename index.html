@@ -56,10 +56,6 @@
                         </form>
                         <div class="flex items-center gap-4 my-6"><hr class="w-full border-white/10"><span class="text-xs text-white/50">LUB</span><hr class="w-full border-white/10"></div>
                         <div class="space-y-3">
-                            <a href="/api/auth/google" class="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg py-3 hover:bg-white/10 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C42.022,35.37,44,30.038,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path></svg>
-                                <span>Kontynuuj z Google</span>
-                            </a>
                             <a href="/api/auth/discord" class="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg py-3 hover:bg-white/10 transition">
                                 <img src="https://i.imgur.com/M88jgrc.png" alt="Discord logo" class="h-5 w-5">
                                 <span>Kontynuuj z Discord</span>
@@ -87,7 +83,7 @@
             </div>
         </main>
     </div>
-    
+
     <div id="panel-container" class="hidden">
         <header class="sticky top-0 z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
             <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4">
@@ -151,7 +147,7 @@
                         </nav>
                     </div>
                 </aside>
-                
+
                 <div class="lg:col-span-4">
                     <section id="view-panel" class="view-content space-y-8">
                          <div>
@@ -173,7 +169,164 @@
                              </div>
                          </div>
                     </section>
-                    </div>
+                    <section id="view-add-server" class="view-content space-y-8 hidden">
+                        <div class="p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl space-y-6">
+                            <h3 class="text-xl font-bold">Wypełnij dane swojego serwera</h3>
+                            <form id="add-server-form">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="server-address" class="block text-base font-medium text-white/80 mb-2">Adres IP serwera</label>
+                                        <input type="text" id="server-address" placeholder="velorie.pl" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition" required>
+                                    </div>
+                                    <div>
+                                        <label for="server-version" class="block text-base font-medium text-white/80 mb-2">Wersja serwera</label>
+                                        <select id="server-version" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition" required>
+                                            <option>1.21.x</option><option>1.20.x</option><option>1.19.x</option><option>1.18.x</option><option>1.17.x</option><option>1.16.x</option><option>1.12.x</option><option>1.8.x</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="server-gamemode" class="block text-base font-medium text-white/80 mb-2">Tryb gry</label>
+                                        <select id="server-gamemode" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition" required>
+                                            <option>Survival</option><option>Creative</option><option>Skyblock</option><option>BedWars</option><option>Hardcore</option><option>RPG</option><option>Inny</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <hr class="border-t border-white/10 my-6">
+                                <button type="submit" class="w-full bg-[var(--accent)] text-white font-semibold py-3 rounded-lg hover:brightness-110 transition shadow-[0_8px_30px_rgba(255,3,84,0.35)]">
+                                    Zatwierdź i dodaj serwer
+                                </button>
+                            </form>
+                        </div>
+                    </section>
+                    <section id="view-wallet" class="view-content space-y-8 hidden">
+                        <div>
+                            <h1 class="text-4xl font-bold">Portfel</h1>
+                            <p class="text-lg text-white/60 mt-2">Zarządzaj swoimi środkami VPLN i przeglądaj historię transakcji.</p>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                            <div class="p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl space-y-6">
+                                <h2 class="text-2xl font-bold">Doładowanie portfela</h2>
+                                <p class="text-white/70">Wpisz kwotę i wybierz metodę płatności, aby doładować portfel środkami VPLN.</p>
+                                <div>
+                                    <label for="amount" class="block text-base font-medium text-white/80 mb-2">Kwota doładowania (PLN)</label>
+                                    <input type="number" id="amount" placeholder="np. 50" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition">
+                                </div>
+                                <div>
+                                    <label class="block text-base font-medium text-white/80 mb-2">Wybierz metodę płatności</label>
+                                    <div class="grid grid-cols-3 gap-3">
+                                        <button class="text-center p-4 border-2 border-[var(--accent)] bg-[var(--accent)]/10 rounded-lg font-semibold transition">Przelew</button>
+                                        <button class="text-center p-4 border-2 border-white/10 hover:border-white/30 rounded-lg font-semibold transition">BLIK</button>
+                                        <button class="text-center p-4 border-2 border-white/10 hover:border-white/30 rounded-lg font-semibold transition">PayPal</button>
+                                    </div>
+                                </div>
+                                <button class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-3 font-semibold hover:brightness-110 transition shadow-[0_8px_30px_rgba(255,3,84,0.35)]">
+                                    <i data-lucide="credit-card" class="h-5 w-5"></i>
+                                    <span>Doładuj Portfel</span>
+                                </button>
+                            </div>
+                            <div class="p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+                                <h2 class="text-2xl font-bold mb-4">Historia Operacji</h2>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left">
+                                        <thead class="border-b border-white/10 text-sm text-white/60">
+                                            <tr><th class="p-3">ID</th><th class="p-3">Data</th><th class="p-3">Kwota</th><th class="p-3">Status</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="border-b border-white/10"><td class="p-3 font-mono text-xs">#F8A2D4</td><td class="p-3 text-sm">20.08.2025</td><td class="p-3 font-semibold text-white">50 VPLN</td><td class="p-3"><span class="text-xs font-bold bg-green-500/10 text-green-400 px-2 py-1 rounded-full">Zakończona</span></td></tr>
+                                            <tr class="border-b border-white/10"><td class="p-3 font-mono text-xs">#E3B1A9</td><td class="p-3 text-sm">15.07.2025</td><td class="p-3 font-semibold text-white">20 VPLN</td><td class="p-3"><span class="text-xs font-bold bg-green-500/10 text-green-400 px-2 py-1 rounded-full">Zakończona</span></td></tr>
+                                            <tr class="border-b border-white/10"><td class="p-3 font-mono text-xs">#C9A8F1</td><td class="p-3 text-sm">02.06.2025</td><td class="p-3 font-semibold text-white">100 VPLN</td><td class="p-3"><span class="text-xs font-bold bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded-full">Oczekująca</span></td></tr>
+                                            <tr><td class="p-3 font-mono text-xs">#B5F3E7</td><td class="p-3 text-sm">28.05.2025</td><td class="p-3 font-semibold text-white">10 VPLN</td><td class="p-3"><span class="text-xs font-bold bg-red-500/10 text-red-400 px-2 py-1 rounded-full">Anulowana</span></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section id="view-store" class="view-content space-y-8 hidden">
+                        <div>
+                            <h1 class="text-4xl font-bold">Sklep i Usługi Premium</h1>
+                            <p class="text-lg text-white/60 mt-2">Wybierz jeden z pakietów, aby zwiększyć widoczność swojego serwera i dotrzeć do nowych graczy.</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                            <div class="h-full flex flex-col p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl ring-2 ring-[var(--accent)] shadow-2xl shadow-[var(--accent)]/10">
+                                <div class="flex-grow">
+                                    <div class="p-4 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] w-min mb-4"><i data-lucide="gallery-horizontal" class="h-8 w-8"></i></div>
+                                    <h2 class="text-2xl font-bold">Baner Reklamowy</h2>
+                                    <p class="text-5xl font-black my-4">119<span class="text-3xl font-bold text-white/70">.99 zł</span><span class="text-base font-medium text-white/50"> / miesiąc</span></p>
+                                    <ul class="space-y-3 text-white/80">
+                                        <li class="flex items-start gap-3"><i data-lucide="check" class="h-5 w-5 text-[var(--accent)] mt-1 flex-shrink-0"></i><span>Wymiar banneru reklamowego 1600x400</span></li>
+                                        <li class="flex items-start gap-3"><i data-lucide="check" class="h-5 w-5 text-[var(--accent)] mt-1 flex-shrink-0"></i><span><span class="font-semibold text-white">Maksymalna widoczność</span> serwera</span></li>
+                                        <li class="flex items-start gap-3"><i data-lucide="check" class="h-5 w-5 text-[var(--accent)] mt-1 flex-shrink-0"></i><span>Reklama na stronie głównej przez <span class="font-semibold text-white">30 dni</span></span></li>
+                                    </ul>
+                                </div>
+                                <a href="#" class="mt-8 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-3 font-semibold hover:brightness-110 transition shadow-[0_8px_30px_rgba(255,3,84,0.35)]"><i data-lucide="shopping-cart" class="h-5 w-5"></i><span>Wybieram Pakiet</span></a>
+                            </div>
+                            <div class="h-full flex flex-col p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+                               <div class="flex-grow">
+                                    <div class="p-4 rounded-full bg-white/10 text-cyan-400 w-min mb-4"><i data-lucide="rocket" class="h-8 w-8"></i></div>
+                                    <h2 class="text-2xl font-bold">Booster</h2>
+                                    <div class="my-4">
+                                        <div class="flex items-center justify-center gap-4 mb-2">
+                                            <button id="booster-minus-btn" class="p-2 rounded-full bg-white/10 hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="minus" class="h-5 w-5"></i></button>
+                                            <span id="booster-quantity" class="text-2xl font-bold w-12 text-center">1</span>
+                                            <button id="booster-plus-btn" class="p-2 rounded-full bg-white/10 hover:bg-white/20 transition"><i data-lucide="plus" class="h-5 w-5"></i></button>
+                                        </div>
+                                        <p id="booster-price" class="text-center text-5xl font-black">27<span class="text-3xl font-bold text-white/70">,99 zł</span><span id="booster-duration" class="block text-base font-medium text-white/50">za 30 dni</span></p>
+                                    </div>
+                                    <ul class="space-y-3 text-white/80">
+                                        <li class="flex items-start gap-3"><i data-lucide="check" class="h-5 w-5 text-[var(--accent)] mt-1 flex-shrink-0"></i><span><span class="font-semibold text-white">Wyższe pozycjonowanie</span> na stronie</span></li>
+                                        <li class="flex items-start gap-3"><i data-lucide="check" class="h-5 w-5 text-[var(--accent)] mt-1 flex-shrink-0"></i><span>Specjalna ranga na discord</span></li>
+                                    </ul>
+                               </div>
+                               <a href="#" class="mt-8 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-5 py-3 font-semibold hover:bg-white/20 transition"><i data-lucide="shopping-cart" class="h-5 w-5"></i><span>Wybieram Pakiet</span></a>
+                            </div>
+                        </div>
+                    </section>
+                    <section id="view-plugin" class="view-content hidden">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl space-y-6">
+                                <h1 class="text-3xl font-bold">Instalacja</h1>
+                                <a href="#" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-3 font-semibold hover:brightness-110 transition shadow-[0_8px_30px_rgba(255,3,84,0.35)]">
+                                    <i data-lucide="download" class="h-5 w-5"></i>
+                                    <span>Pobierz plugin (1.8 - 1.21.8)</span>
+                                </a>
+                                <p class="text-white/70">W pliku konfiguracyjnym <code class="bg-black/30 px-1 py-0.5 rounded text-white/80">config.yml</code> umieść swój unikatowy identyfikator serwera.</p>
+                                <div class="space-y-3">
+                                    <h3 class="font-semibold">Wybierz serwer, aby wyświetlić identyfikator</h3>
+                                    <select disabled class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white/60 focus:outline-none cursor-not-allowed">
+                                        <option>Nie posiadasz jeszcze żadnego serwera</option>
+                                    </select>
+                                    <div>
+                                        <label class="block text-sm text-white/60 mb-1">Twój unikatowy identyfikator:</label>
+                                        <div class="relative">
+                                            <input id="server-id" type="text" readonly value="---" class="w-full bg-black/50 border border-white/10 rounded-lg pl-4 pr-12 py-3 text-white/80 font-mono cursor-text">
+                                            <button data-copy-target="#server-id" class="copy-btn absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-white/10">
+                                                <i data-lucide="copy" class="h-5 w-5 text-white/60"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative p-1 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+                               <div class="absolute top-4 right-4 z-10">
+                                    <button data-copy-target="#config-code" class="copy-btn flex items-center gap-2 text-xs bg-black/50 border border-white/10 px-3 py-2 rounded-lg hover:bg-white/10 transition">
+                                        <i data-lucide="copy" class="h-4 w-4"></i>
+                                        <span>Kopiuj</span>
+                                    </button>
+                               </div>
+                               <div class="bg-black/40 p-6 rounded-xl h-full font-mono text-sm overflow-x-auto">
+                                    <h2 class="text-xl font-bold text-white mb-4">Konfiguracja <span class="text-white/60">(config.yml)</span></h2>
+                                    <pre><code id="config-code"><span class="code-comment"># Konfiguracja pluginu VelorieConnector</span>
+<span class="code-comment"># Wersja 1.0</span>
+<span style="color: #67e8f9;">server-identifier:</span> <span style="color: #f87171;">'---'</span>
+<span style="color: #67e8f9;">messages:</span>
+  <span style="color: #a78bfa;">vote-broadcast:</span> <span style="color: #facc15;">'&a[Velorie] &7Gracz &e%player% &7zagłosował!'</span>
+</code></pre>
+                               </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
             </div>
         </main>
     </div>
@@ -201,7 +354,7 @@
             const registerFormContainer = document.getElementById('register-form-container');
             const showRegisterBtn = document.getElementById('show-register-btn');
             const showLoginBtn = document.getElementById('show-login-btn');
-            
+
             showRegisterBtn.addEventListener('click', () => {
                 loginFormContainer.classList.add('hidden');
                 registerFormContainer.classList.remove('hidden');
@@ -211,7 +364,6 @@
                 loginFormContainer.classList.remove('hidden');
             });
 
-            // Logika formularza rejestracji
             const registerForm = document.getElementById('register-form-element');
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -237,7 +389,6 @@
                 }
             });
 
-            // Logika formularza logowania
             const loginForm = document.getElementById('login-form-element');
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -261,22 +412,18 @@
                 }
             });
         }
-        
+
         // --- Inicjalizacja Panelu Klienta ---
         function initializePanel() {
-            // Pobierz dane użytkownika i zaktualizuj UI
             async function fetchUserData() {
                 const token = localStorage.getItem('authToken');
                 if (!token) return;
 
                 try {
                     const response = await fetch('/api/user', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (!response.ok) {
-                        // Jeśli token jest nieważny, wyloguj
                         localStorage.removeItem('authToken');
                         window.location.reload();
                         return;
@@ -295,14 +442,12 @@
                 document.getElementById('header-coin-balance').textContent = `${userData.vc} VC`;
             }
 
-            // Wylogowywanie
             document.getElementById('logout-btn').addEventListener('click', (e) => {
                 e.preventDefault();
                 localStorage.removeItem('authToken');
                 window.location.reload();
             });
 
-            // Logika przełączania widoków w panelu
             const navLinks = document.querySelectorAll('#main-nav .nav-link');
             const contentSections = document.querySelectorAll('.view-content');
             function switchView(targetView) {
@@ -325,6 +470,40 @@
                 });
             });
             document.getElementById('add-first-server-btn')?.addEventListener('click', () => switchView('add-server'));
+
+            const copyButtons = document.querySelectorAll('.copy-btn');
+            copyButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetSelector = btn.dataset.copyTarget;
+                    const targetElement = document.querySelector(targetSelector);
+                    if (targetElement) {
+                        const valueToCopy = targetElement.value || targetElement.innerText;
+                        navigator.clipboard.writeText(valueToCopy).then(() => {
+                           const originalText = btn.innerHTML;
+                           btn.innerHTML = 'Skopiowano!';
+                           setTimeout(() => btn.innerHTML = originalText, 2000);
+                        });
+                    }
+                });
+            });
+
+            // LOGIKA DLA LICZNIKA BOOSTERÓW
+            const boosterMinusBtn = document.getElementById('booster-minus-btn');
+            const boosterPlusBtn = document.getElementById('booster-plus-btn');
+            const boosterQuantityEl = document.getElementById('booster-quantity');
+            const boosterPriceEl = document.getElementById('booster-price');
+            let boosterQuantity = 1;
+            function updateBoosterPrice() {
+                const basePrice = 27.99;
+                const additionalPrice = 10.00;
+                let finalPrice = basePrice + (boosterQuantity - 1) * additionalPrice;
+                boosterQuantityEl.textContent = boosterQuantity;
+                boosterPriceEl.innerHTML = `${finalPrice.toFixed(2).replace('.', ',')}<span class="text-3xl font-bold text-white/70"> zł</span><span class="block text-base font-medium text-white/50">za ${boosterQuantity * 30} dni</span>`;
+                boosterMinusBtn.disabled = boosterQuantity === 1;
+            }
+            if(boosterPlusBtn) boosterPlusBtn.addEventListener('click', () => { boosterQuantity++; updateBoosterPrice(); });
+            if(boosterMinusBtn) boosterMinusBtn.addEventListener('click', () => { if (boosterQuantity > 1) { boosterQuantity--; updateBoosterPrice(); } });
+            if(boosterPriceEl) updateBoosterPrice();
             
             fetchUserData();
         }
